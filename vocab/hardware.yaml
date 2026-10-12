@@ -1,0 +1,5 @@
+# 硬件词表。卡片 applies_to.hardware 只能用这里的键。
+thor: {vendor: nvidia, arch: blackwell, class: edge}
+orin: {vendor: nvidia, arch: ampere, class: edge}
+b200: {vendor: nvidia, arch: blackwell, class: datacenter}
+h100: {vendor: nvidia, arch: hopper, class: datacenter}

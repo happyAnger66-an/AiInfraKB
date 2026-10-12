@@ -1,0 +1,15 @@
+[kb]
+name = "AiInfraKB"
+id_prefix = "kb-"
+
+# 各类卡片的默认有效期（天），用于计算 review_by。P2 的治理扫描会用到。
+[ttl_days]
+fact = 730
+decision = 365
+benchmark = 180
+lesson = 180
+technique = 90
+
+[publish]
+site_title = "AiInfraKB · AI 推理优化知识库"
+wiki_base_url = "/wiki/aiinfra-kb/"

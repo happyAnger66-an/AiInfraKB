@@ -1,0 +1,6 @@
+# 优化技巧词表。卡片 applies_to.techniques 只能用这里的键。
+fp8-quant: {area: quantization}
+int8-quant: {area: quantization}
+kernel-fusion: {area: kernel}
+cuda-graph: {area: runtime}
+kv-cache: {area: memory}

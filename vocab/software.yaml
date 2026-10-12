@@ -1,0 +1,7 @@
+# 软件词表。卡片 applies_to.software 的键只能用这里的键。
+# current 记录当前在用的版本，P2 的版本漂移扫描据此判断卡片是否过时。
+tensorrt: {current: ""}
+cuda: {current: ""}
+pytorch: {current: ""}
+vllm: {current: ""}
+tvm: {current: ""}

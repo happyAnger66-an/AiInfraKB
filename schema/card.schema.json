@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AiInfraKB card frontmatter",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id", "type", "title", "status", "claim", "applies_to",
+    "evidence", "confidence", "authors", "created", "last_verified", "review_by"
+  ],
+  "properties": {
+    "id": {"type": "string", "pattern": "^kb-[0-9]{4}$"},
+    "type": {"enum": ["fact", "lesson", "technique", "benchmark", "decision"]},
+    "title": {"type": "string", "minLength": 4},
+    "status": {"enum": ["draft", "active", "needs-review", "deprecated", "superseded"]},
+    "claim": {"type": "string", "minLength": 8},
+    "applies_to": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "hardware": {"$ref": "#/$defs/names"},
+        "models": {"$ref": "#/$defs/names"},
+        "techniques": {"$ref": "#/$defs/names"},
+        "precision": {
+          "type": "array",
+          "items": {"enum": ["fp32", "tf32", "bf16", "fp16", "fp8", "nvfp4", "int8", "int4"]},
+          "uniqueItems": true
+        },
+        "software": {
+          "type": "object",
+          "additionalProperties": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "not_applies_to": {"type": "string"},
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "ref"],
+        "properties": {
+          "kind": {"enum": ["benchmark", "profile", "experiment", "source", "doc"]},
+          "ref": {"type": "string", "minLength": 1},
+          "env": {"type": "object"},
+          "result": {"type": "object"},
+          "note": {"type": "string"}
+        }
+      }
+    },
+    "verify": {"type": "string"},
+    "confidence": {"enum": ["inferred", "measured", "reproduced"]},
+    "authors": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "pattern": "^(agent|human):.+"}
+    },
+    "created": {"$ref": "#/$defs/date"},
+    "last_verified": {"$ref": "#/$defs/date"},
+    "review_by": {"$ref": "#/$defs/date"},
+    "visibility": {"enum": ["private", "public"]},
+    "related": {"$ref": "#/$defs/ids"},
+    "supersedes": {"$ref": "#/$defs/ids"},
+    "superseded_by": {"type": "string", "pattern": "^kb-[0-9]{4}$"}
+  },
+  "$defs": {
+    "date": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+    "names": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9.+-]*$"}
+    },
+    "ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^kb-[0-9]{4}$"}
+    }
+  }
+}
