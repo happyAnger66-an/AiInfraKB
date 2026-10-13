@@ -23,7 +23,7 @@ AI 推理优化知识库，主要给 agent 用：沉淀不同 agent 在不同模
 ## 用法
 
 ```bash
-pip install -e ".[dev]" --user --break-system-packages   # 注册 ~/.local/bin/kb
+pip install -e ".[dev]" --user --break-system-packages   # 注册 ~/.local/bin/kb，并安装 pytest 与 mcp 1.x
 kb lint                          # 校验 cards/ 与 archive/
 kb query --hardware thor --model pi05 --json
 kb show kb-0001
@@ -32,7 +32,7 @@ kb propose --type lesson --title "..." --claim "延迟从 12ms 降到 9ms" \
 kb feedback kb-0001 --worked --env thor/trt10.9 --author agent:cursor/composer
 kb build --out out               # 生成 out/wiki、out/html、out/INDEX.md
 kb build --out out --public-only # 只包含 visibility: public 的卡片
-kb-mcp                         # MCP 服务，需 pip install -e ".[mcp]"；根目录用 AIINFRAKB_ROOT
+kb-mcp                         # MCP 服务，需 pip install -e ".[mcp]"（锁在 mcp>=1.28,<2）；根目录用 AIINFRAKB_ROOT
 python3 -m pytest tests/
 ```
 

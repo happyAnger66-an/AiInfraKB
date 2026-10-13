@@ -11,6 +11,14 @@ def test_package_registers_kb_mcp_command():
     assert 'kb-mcp = "kb_mcp:main"' in text
 
 
+def test_mcp_dependency_pinned_below_v2():
+    pin = "mcp>=1.28,<2"
+    pyproject = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    requirements = (REPO_ROOT / "requirements.txt").read_text(encoding="utf-8")
+    assert pin in pyproject
+    assert pin in requirements
+
+
 def test_server_does_not_import_kb_module():
     text = (REPO_ROOT / "tools" / "kb_mcp.py").read_text(encoding="utf-8")
     assert "import kb" not in text
