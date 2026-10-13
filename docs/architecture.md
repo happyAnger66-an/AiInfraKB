@@ -99,6 +99,15 @@ classDiagram
 | `kb propose` | 在 `cards/`、`archive/`、`inbox/` 里取最大编号加一，把草稿写入 `inbox/<id>.md`，不改 `cards/`。必填 type、title、claim、至少一项 `applies_to`、至少一条已存在的证据路径、`agent:` 或 `human:` 开头的 author。`lesson` / `technique` / `benchmark` 的 claim 必须有数字，词表外的名字拒绝。失败抛 `ProposeError` 且不写文件。`status` 为 `draft`，`created` 与 `last_verified` 为当天，`review_by` 为当天加 `kb.toml` 里该类型的 TTL |
 | `kb feedback <id> --worked\|--failed` | 向 `feedback/<id>.jsonl` 追加一行，字段为 `id`、`result`、`env`、`author`、`note`、`at`。不修改卡片。id 不存在或 result 非法时抛 `FeedbackError` 且不写文件 |
 
+## kb-mcp
+
+`tools/kb_mcp.py` 是 MCP 入口，注册 `kb-mcp = "kb_mcp:main"`。它不导入 `kb` 模块，只把工具参数拼成命令行交给 `kb` 子进程。
+
+- 启动时若有 `AIINFRAKB_ROOT`，每条命令都带 `--root`；没有则让 `kb` 自己解析根目录。
+- `kb_query` 固定加 `--json`，其余过滤参数为空就不传。返回值是 stdout 原文，不解析 JSON。
+- `kb_show`、`kb_propose`、`kb_feedback` 与同名子命令的参数一一对应。`result=worked|failed` 转成 `--worked` 或 `--failed`。
+- 子进程退出码非 0 时抛 `KbMcpError`，消息用 stderr（stderr 为空则用 stdout）。
+
 ## lint 规则
 
 | 代码 | 规则 |

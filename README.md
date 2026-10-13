@@ -18,6 +18,7 @@ AI 推理优化知识库，主要给 agent 用：沉淀不同 agent 在不同模
 | `schema/card.schema.json` | 卡片 frontmatter 的 JSON Schema |
 | `kb.toml` | TTL、发布配置 |
 | `tools/kb.py` | 命令行工具 |
+| `tools/kb_mcp.py` | MCP 入口，把工具调用转给 `kb` |
 
 ## 用法
 
@@ -31,6 +32,7 @@ kb propose --type lesson --title "..." --claim "延迟从 12ms 降到 9ms" \
 kb feedback kb-0001 --worked --env thor/trt10.9 --author agent:cursor/composer
 kb build --out out               # 生成 out/wiki、out/html、out/INDEX.md
 kb build --out out --public-only # 只包含 visibility: public 的卡片
+kb-mcp                         # MCP 服务，需 pip install -e ".[mcp]"；根目录用 AIINFRAKB_ROOT
 python3 -m pytest tests/
 ```
 
@@ -38,4 +40,4 @@ python3 -m pytest tests/
 
 ## 状态
 
-P0：仓库框架、schema、词表、模板、`lint`、`build`。P1：`query`、`show`、`propose`、`feedback`，以及全局命令 `kb`。治理扫描在后续阶段加入。
+P0：仓库框架、schema、词表、模板、`lint`、`build`。P1：`query`、`show`、`propose`、`feedback`、全局命令 `kb`，以及只做转发的 `kb-mcp`。治理扫描在后续阶段加入。
