@@ -13,8 +13,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=7"]
-mcp = ["mcp"]
+# mcp 2.x 把 FastMCP 改名为 MCPServer，且 call_tool 返回值形状不同。
+# kb_mcp 与 tests/test_mcp.py 仍走 1.x，锁在官方维护分支。
+dev = ["pytest>=7", "mcp>=1.28,<2"]
+mcp = ["mcp>=1.28,<2"]
 
 [project.scripts]
 kb = "kb:main"

@@ -101,7 +101,7 @@ classDiagram
 
 ## kb-mcp
 
-`tools/kb_mcp.py` 是 MCP 入口，注册 `kb-mcp = "kb_mcp:main"`。它不导入 `kb` 模块，只把工具参数拼成命令行交给 `kb` 子进程。
+`tools/kb_mcp.py` 是 MCP 入口，注册 `kb-mcp = "kb_mcp:main"`。它不导入 `kb` 模块，只把工具参数拼成命令行交给 `kb` 子进程。依赖锁在 `mcp>=1.28,<2`：这一档仍提供 `mcp.server.fastmcp.FastMCP`。2.x 把该类改名为 `MCPServer` 并改了 `call_tool` 的返回值，当前入口没有跟随。
 
 - 启动时若有 `AIINFRAKB_ROOT`，每条命令都带 `--root`；没有则让 `kb` 自己解析根目录。
 - `kb_query` 固定加 `--json`，其余过滤参数为空就不传。返回值是 stdout 原文，不解析 JSON。

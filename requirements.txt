@@ -1,3 +1,5 @@
 PyYAML>=6.0
 jsonschema>=4.18
 pytest>=7
+# kb-mcp 使用 mcp.server.fastmcp.FastMCP；2.x 已移除该导入。
+mcp>=1.28,<2
