@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import os
 import re
 import sys
 import tomllib
@@ -457,28 +458,334 @@ def build(kb: KB, out, public_only: bool = False) -> list[Path]:
     return written
 
 
-def main(argv: list[str]) -> int:
+class NotFoundError(Exception):
+    pass
+
+
+class ProposeError(Exception):
+    pass
+
+
+class FeedbackError(Exception):
+    pass
+
+
+class Hit:
+    def __init__(self, card: Card, score: int, warning: bool):
+        self.card = card
+        self.score = score
+        self.warning = warning
+
+
+_CONFIDENCE_SCORE = {"reproduced": 3, "measured": 2, "inferred": 1}
+_AUTHOR_RE = re.compile(r"^(agent|human):.+$")
+
+
+def query(kb: KB, hardware=None, model=None, technique=None, text=None) -> list[Hit]:
+    needle = text.casefold() if text else None
+    hits: list[Hit] = []
+    for card in kb.cards:
+        if card.archived or card.status not in ("active", "needs-review"):
+            continue
+        applies = card.meta.get("applies_to")
+        applies = applies if isinstance(applies, dict) else {}
+        if hardware and hardware not in (applies.get("hardware") or []):
+            continue
+        if model and model not in (applies.get("models") or []):
+            continue
+        if technique and technique not in (applies.get("techniques") or []):
+            continue
+        if needle is not None:
+            blob = "\n".join(
+                [
+                    str(card.meta.get("title") or ""),
+                    str(card.meta.get("claim") or ""),
+                    card.body,
+                ]
+            ).casefold()
+            if needle not in blob:
+                continue
+        hits.append(
+            Hit(
+                card,
+                _CONFIDENCE_SCORE.get(card.meta.get("confidence"), 0),
+                card.status == "needs-review",
+            )
+        )
+    hits.sort(key=lambda hit: hit.card.id or "")
+    hits.sort(key=lambda hit: hit.card.meta.get("last_verified") or "", reverse=True)
+    hits.sort(key=lambda hit: hit.score, reverse=True)
+    return hits
+
+
+def _find_card_path(root: Path, card_id: str) -> Path | None:
+    for folder in ("cards", "archive", "inbox"):
+        base = root / folder
+        if not base.is_dir():
+            continue
+        matches = sorted(base.rglob(f"{card_id}.md"))
+        if matches:
+            return matches[0]
+    return None
+
+
+def show(kb: KB, card_id: str) -> str:
+    path = _find_card_path(kb.root, card_id)
+    if path is None:
+        raise NotFoundError(card_id)
+    return path.read_text(encoding="utf-8")
+
+
+def _next_id(root: Path) -> str:
+    numbers = []
+    for folder in ("cards", "archive", "inbox"):
+        base = root / folder
+        if not base.is_dir():
+            continue
+        for path in base.rglob("*.md"):
+            match = re.fullmatch(r"kb-(\d{4})", path.stem)
+            if match:
+                numbers.append(int(match.group(1)))
+    nxt = max(numbers, default=0) + 1
+    if nxt > 9999:
+        raise ProposeError("卡片编号已用尽")
+    return f"kb-{nxt:04d}"
+
+
+def _check_applies_to(kb: KB, applies_to: dict) -> None:
+    if not isinstance(applies_to, dict) or not applies_to:
+        raise ProposeError("applies_to 至少要有一项")
+    for key in ("hardware", "models", "techniques"):
+        values = applies_to.get(key)
+        if values is None:
+            continue
+        if not isinstance(values, list) or any(value not in _allowed(kb.vocab, key) for value in values):
+            raise ProposeError(f"applies_to.{key} 不在词表中")
+    software = applies_to.get("software")
+    if isinstance(software, dict) and any(name not in _allowed(kb.vocab, "software") for name in software):
+        raise ProposeError("applies_to.software 不在词表中")
+
+
+def propose(
+    kb: KB,
+    *,
+    type: str,
+    title: str,
+    claim: str,
+    applies_to: dict,
+    evidence_refs: list[str],
+    author: str,
+    today: dt.date | None = None,
+) -> Path:
+    if type not in TYPE_DIRS:
+        raise ProposeError(f"未知类型 {type}")
+    if not _AUTHOR_RE.fullmatch(author or ""):
+        raise ProposeError("author 必须以 agent: 或 human: 开头")
+    if type in CLAIM_NUMBER_TYPES and re.search(r"\d", claim or "") is None:
+        raise ProposeError("claim 需要包含数字")
+    _check_applies_to(kb, applies_to)
+    if not evidence_refs:
+        raise ProposeError("至少要有一条证据")
+    for ref in evidence_refs:
+        if not (kb.root / ref).is_file():
+            raise ProposeError(f"证据文件不存在: {ref}")
+    today = today or dt.date.today()
+    ttl = kb.config.get("ttl_days", {}).get(type)
+    if not isinstance(ttl, int):
+        raise ProposeError(f"kb.toml 没有 {type} 的 TTL")
+    review_by = today + dt.timedelta(days=ttl)
+    card_id = _next_id(kb.root)
+    meta = {
+        "id": card_id,
+        "type": type,
+        "title": title,
+        "status": "draft",
+        "claim": claim,
+        "applies_to": applies_to,
+        "evidence": [{"kind": "experiment", "ref": ref} for ref in evidence_refs],
+        "confidence": "inferred",
+        "authors": [author],
+        "created": today.isoformat(),
+        "last_verified": today.isoformat(),
+        "review_by": review_by.isoformat(),
+        "visibility": "private",
+    }
+    dumped = yaml.safe_dump(meta, allow_unicode=True, sort_keys=False)
+    for key in ("created", "last_verified", "review_by"):
+        dumped = dumped.replace(f"{key}: '{meta[key]}'", f"{key}: {meta[key]}")
+    body = f"\n## 结论\n\n{claim}\n\n## 适用条件\n\n见 frontmatter 的 applies_to。\n\n## 证据\n\n见 evidence 中的 ref。\n"
+    path = kb.root / "inbox" / f"{card_id}.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(f"---\n{dumped}---\n{body}", encoding="utf-8")
+    return path
+
+
+def feedback(
+    kb: KB,
+    card_id: str,
+    *,
+    result: str,
+    env: str,
+    author: str,
+    note: str = "",
+    at: str | None = None,
+) -> Path:
+    if result not in ("worked", "failed"):
+        raise FeedbackError("result 必须是 worked 或 failed")
+    if not _AUTHOR_RE.fullmatch(author or ""):
+        raise FeedbackError("author 必须以 agent: 或 human: 开头")
+    if not any(card.id == card_id for card in kb.cards):
+        raise FeedbackError(f"找不到 {card_id}")
+    if at is None:
+        at = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    row = {
+        "id": card_id,
+        "result": result,
+        "env": env,
+        "author": author,
+        "note": note,
+        "at": at,
+    }
+    path = kb.root / "feedback" / f"{card_id}.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+    return path
+
+
+def _resolve_root(args) -> Path:
+    return Path(args.root or os.environ.get("AIINFRAKB_ROOT") or ".")
+
+
+def _print_issues(issues: list[Issue]) -> None:
+    for issue in issues:
+        print(f"{issue.code}\t{issue.path}\t{issue.message}", file=sys.stderr)
+
+
+def main(argv: list[str] | None = None) -> int:
+    if argv is None:
+        argv = sys.argv[1:]
     parser = argparse.ArgumentParser(prog="kb")
-    parser.add_argument("--root", default=".", help="知识库根目录")
+    parser.add_argument("--root", default=None, help="知识库根目录，默认 AIINFRAKB_ROOT 或当前目录")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("lint")
     build_parser = sub.add_parser("build")
     build_parser.add_argument("--out", required=True)
     build_parser.add_argument("--public-only", action="store_true")
-    args = parser.parse_args(argv)
 
-    kb = load_kb(args.root)
+    query_parser = sub.add_parser("query")
+    query_parser.add_argument("--hardware")
+    query_parser.add_argument("--model")
+    query_parser.add_argument("--technique")
+    query_parser.add_argument("--text")
+    query_parser.add_argument("--json", action="store_true")
+
+    show_parser = sub.add_parser("show")
+    show_parser.add_argument("card_id")
+
+    propose_parser = sub.add_parser("propose")
+    propose_parser.add_argument("--type", required=True)
+    propose_parser.add_argument("--title", required=True)
+    propose_parser.add_argument("--claim", required=True)
+    propose_parser.add_argument("--hardware", action="append", default=[])
+    propose_parser.add_argument("--model", action="append", default=[])
+    propose_parser.add_argument("--technique", action="append", default=[])
+    propose_parser.add_argument("--evidence-ref", action="append", required=True)
+    propose_parser.add_argument("--author", required=True)
+    propose_parser.add_argument("--today")
+
+    feedback_parser = sub.add_parser("feedback")
+    feedback_parser.add_argument("card_id")
+    outcome = feedback_parser.add_mutually_exclusive_group(required=True)
+    outcome.add_argument("--worked", action="store_true")
+    outcome.add_argument("--failed", action="store_true")
+    feedback_parser.add_argument("--env", required=True)
+    feedback_parser.add_argument("--author", required=True)
+    feedback_parser.add_argument("--note", default="")
+    feedback_parser.add_argument("--at")
+
+    args = parser.parse_args(argv)
+    kb = load_kb(_resolve_root(args))
     if args.command == "lint":
         issues = lint(kb)
-        for issue in issues:
-            print(f"{issue.code}\t{issue.path}\t{issue.message}", file=sys.stderr)
+        _print_issues(issues)
         return 1 if issues else 0
-
+    if args.command == "build":
+        try:
+            build(kb, args.out, public_only=args.public_only)
+        except LintError as exc:
+            _print_issues(exc.issues)
+            return 1
+        return 0
+    if args.command == "query":
+        hits = query(
+            kb,
+            hardware=args.hardware,
+            model=args.model,
+            technique=args.technique,
+            text=args.text,
+        )
+        if args.json:
+            payload = [
+                {
+                    "id": hit.card.id,
+                    "status": hit.card.status,
+                    "claim": hit.card.meta.get("claim", ""),
+                    "warning": hit.warning,
+                    "score": hit.score,
+                }
+                for hit in hits
+            ]
+            print(json.dumps(payload, ensure_ascii=False))
+        else:
+            for hit in hits:
+                mark = " needs-review" if hit.warning else ""
+                print(f"{hit.card.id}\t{hit.card.status}{mark}\t{hit.card.meta.get('claim', '')}")
+        return 0
+    if args.command == "show":
+        try:
+            print(show(kb, args.card_id), end="")
+        except NotFoundError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        return 0
+    if args.command == "propose":
+        applies: dict = {}
+        if args.hardware:
+            applies["hardware"] = args.hardware
+        if args.model:
+            applies["models"] = args.model
+        if args.technique:
+            applies["techniques"] = args.technique
+        today = dt.date.fromisoformat(args.today) if args.today else None
+        try:
+            path = propose(
+                kb,
+                type=args.type,
+                title=args.title,
+                claim=args.claim,
+                applies_to=applies,
+                evidence_refs=args.evidence_ref,
+                author=args.author,
+                today=today,
+            )
+        except ProposeError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+        print(path.relative_to(kb.root).as_posix())
+        return 0
     try:
-        build(kb, args.out, public_only=args.public_only)
-    except LintError as exc:
-        for issue in exc.issues:
-            print(f"{issue.code}\t{issue.path}\t{issue.message}", file=sys.stderr)
+        feedback(
+            kb,
+            args.card_id,
+            result="worked" if args.worked else "failed",
+            env=args.env,
+            author=args.author,
+            note=args.note,
+            at=args.at,
+        )
+    except FeedbackError as exc:
+        print(str(exc), file=sys.stderr)
         return 1
     return 0
 

@@ -26,7 +26,7 @@ flowchart LR
   BUILD --> AIDX["out/INDEX.md<br/>只含 active，给 agent"]
 ```
 
-P0 只有 `lint` 和 `build`。`query`、`propose`、`feedback`（P1）和治理扫描（P2）在同一个 `KB` 对象上扩展，不改卡片格式。
+`query`、`show`、`propose`、`feedback` 和 `lint`、`build` 用同一个 `KB` 对象，不改卡片格式。治理扫描（P2）以后也加在这里。
 
 ## 类图
 
@@ -63,16 +63,41 @@ classDiagram
     +load_kb(root) KB
     +lint(kb) list~Issue~
     +build(kb, out, public_only=False) list~Path~
+    +query(kb, hardware, model, technique, text) list~Hit~
+    +show(kb, card_id) str
+    +propose(kb, ...) Path
+    +feedback(kb, card_id, ...) Path
     +main(argv) int
   }
+  class Hit {
+    +Card card
+    +int score
+    +bool warning
+  }
+  class ProposeError
+  class FeedbackError
   kb_module ..> KB
   kb_module ..> Issue
   kb_module ..> LintError
+  kb_module ..> Hit
+  kb_module ..> ProposeError
+  kb_module ..> FeedbackError
 ```
 
 - `load_kb` 读取 `cards/` 和 `archive/` 下的所有 `.md`，把 YAML 解析出的日期统一转成 `YYYY-MM-DD` 字符串后再交给 schema 校验。
 - `build` 先调用 `lint`，有任何 `Issue` 就抛出 `LintError`。
 - `public_only=True` 时，`visibility` 不是 `public` 的卡片不出现在任何产物里。
+
+## agent 命令
+
+根目录用 `--root`，否则用环境变量 `AIINFRAKB_ROOT`，都没有则用当前目录。`pyproject.toml` 把 `kb` 注册为控制台命令，入口是 `kb:main`（`main` 不传参数时读取 `sys.argv`）。
+
+| 命令 | 行为 |
+|---|---|
+| `kb query` | 返回未归档、状态为 `active` 或 `needs-review` 的卡片。`--hardware`、`--model`、`--technique` 必须同时满足；`--text` 在标题、claim、正文里做不区分大小写的子串匹配。`needs-review` 的 `Hit.warning` 为真。排序：`reproduced` > `measured` > `inferred`，相同置信度时 `last_verified` 更新的在前，再按 id。`--json` 打印数组，每项含 `id`、`status`、`claim`、`warning`、`score` |
+| `kb show <id>` | 打印该卡片文件原文。找不到时抛 `NotFoundError`，命令退出码 2 |
+| `kb propose` | 在 `cards/`、`archive/`、`inbox/` 里取最大编号加一，把草稿写入 `inbox/<id>.md`，不改 `cards/`。必填 type、title、claim、至少一项 `applies_to`、至少一条已存在的证据路径、`agent:` 或 `human:` 开头的 author。`lesson` / `technique` / `benchmark` 的 claim 必须有数字，词表外的名字拒绝。失败抛 `ProposeError` 且不写文件。`status` 为 `draft`，`created` 与 `last_verified` 为当天，`review_by` 为当天加 `kb.toml` 里该类型的 TTL |
+| `kb feedback <id> --worked\|--failed` | 向 `feedback/<id>.jsonl` 追加一行，字段为 `id`、`result`、`env`、`author`、`note`、`at`。不修改卡片。id 不存在或 result 非法时抛 `FeedbackError` 且不写文件 |
 
 ## lint 规则
 

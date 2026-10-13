@@ -22,10 +22,15 @@ AI 推理优化知识库，主要给 agent 用：沉淀不同 agent 在不同模
 ## 用法
 
 ```bash
-pip install -r requirements.txt
-python3 tools/kb.py lint                 # 校验所有卡片
-python3 tools/kb.py build --out out      # 生成 out/wiki、out/html、out/INDEX.md
-python3 tools/kb.py build --out out --public-only   # 只包含 visibility: public 的卡片
+pip install -e ".[dev]" --user --break-system-packages   # 注册 ~/.local/bin/kb
+kb lint                          # 校验 cards/ 与 archive/
+kb query --hardware thor --model pi05 --json
+kb show kb-0001
+kb propose --type lesson --title "..." --claim "延迟从 12ms 降到 9ms" \
+  --hardware thor --evidence-ref evidence/note.md --author agent:cursor/composer
+kb feedback kb-0001 --worked --env thor/trt10.9 --author agent:cursor/composer
+kb build --out out               # 生成 out/wiki、out/html、out/INDEX.md
+kb build --out out --public-only # 只包含 visibility: public 的卡片
 python3 -m pytest tests/
 ```
 
@@ -33,4 +38,4 @@ python3 -m pytest tests/
 
 ## 状态
 
-P0：仓库框架、schema、词表、模板、`lint`、`build`。`query`、`propose`、`feedback`、治理扫描在后续阶段加入。
+P0：仓库框架、schema、词表、模板、`lint`、`build`。P1：`query`、`show`、`propose`、`feedback`，以及全局命令 `kb`。治理扫描在后续阶段加入。

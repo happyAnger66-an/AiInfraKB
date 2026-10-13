@@ -2,7 +2,7 @@
 
 ## 查知识
 
-先读 `out/INDEX.md`（运行 `python3 tools/kb.py build --out out` 生成），按硬件、模型、技巧找到卡片 id，再打开 `cards/` 下对应文件。只信 `status: active` 的卡片；`needs-review` 的卡片要自己复验后再用。
+先运行 `kb query --hardware <硬件> --model <模型> --json`（根目录用 `AIINFRAKB_ROOT` 或 `--root`）。只信 `status: active` 的结果；`warning: true` 的是 `needs-review`，要自己复验后再用。需要全文时再 `kb show <id>`。
 
 ## 写知识
 

@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aiinfrakb"
+version = "0.1.0"
+description = "AI 推理优化知识库"
+requires-python = ">=3.11"
+dependencies = [
+  "PyYAML>=6.0",
+  "jsonschema>=4.18",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+kb = "kb:main"
+
+[tool.setuptools]
+py-modules = ["kb"]
+
+[tool.setuptools.package-dir]
+"" = "tools"
