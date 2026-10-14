@@ -1,0 +1,176 @@
+{
+  "machine": "thor-001 / 2239 / pi05-forge-agent",
+  "gate": "PASS gpc 1575 / nvd 1692",
+  "warmup": 3,
+  "iters": 10,
+  "n": 13,
+  "packs": {
+    "base": "/work/gr00t_n17_xdof_fp16_v2_vit_llm_flash_unirt",
+    "cand": "/work/gr00t_n17_xdof_fp16_v2_dit_layout_kern_unirt + MLC_VLA_GR00T_DIT_LAYOUT=1"
+  },
+  "gpu_ms_inf": {
+    "base": 72.65,
+    "cand": 72.092,
+    "d": -0.559
+  },
+  "buckets_ms_inf": {
+    "attn": {
+      "base": 2.409,
+      "cand": 2.406,
+      "d": -0.004,
+      "base_L": 128.0,
+      "cand_L": 128.0
+    },
+    "elem": {
+      "base": 1.595,
+      "cand": 1.67,
+      "d": 0.075,
+      "base_L": 204.0,
+      "cand_L": 204.0
+    },
+    "gemm": {
+      "base": 59.559,
+      "cand": 58.392,
+      "d": -1.167,
+      "base_L": 1324.0,
+      "cand_L": 1324.0
+    },
+    "layout": {
+      "base": 8.251,
+      "cand": 2.26,
+      "d": -5.991,
+      "base_L": 844.0,
+      "cand_L": 340.0
+    },
+    "layout_pack": {
+      "base": 0.0,
+      "cand": 6.559,
+      "d": 6.559,
+      "base_L": 0.0,
+      "cand_L": 512.0
+    },
+    "norm": {
+      "base": 0.835,
+      "cand": 0.805,
+      "d": -0.03,
+      "base_L": 260.0,
+      "cand_L": 260.0
+    }
+  },
+  "layout_combined_ms_inf": {
+    "base": 8.251,
+    "cand": 8.819
+  },
+  "tc_ms_inf": {
+    "gemm_reduce": {
+      "base": 1.618,
+      "cand": 1.61,
+      "d": -0.008,
+      "base_L": 136.0,
+      "cand_L": 136.0
+    },
+    "simt_attn": {
+      "base": 2.409,
+      "cand": 2.406,
+      "d": -0.004,
+      "base_L": 128.0,
+      "cand_L": 128.0
+    },
+    "simt_gemm": {
+      "base": 2.672,
+      "cand": 2.672,
+      "d": -0.0,
+      "base_L": 128.0,
+      "cand_L": 128.0
+    },
+    "simt_layout": {
+      "base": 0.0,
+      "cand": 6.559,
+      "d": 6.559,
+      "base_L": 0.0,
+      "cand_L": 512.0
+    },
+    "simt_other": {
+      "base": 10.682,
+      "cand": 4.735,
+      "d": -5.946,
+      "base_L": 1308.0,
+      "cand_L": 804.0
+    },
+    "tensor_core": {
+      "base": 55.269,
+      "cand": 54.11,
+      "d": -1.159,
+      "base_L": 1060.0,
+      "cand_L": 1060.0
+    }
+  },
+  "replacement": {
+    "base_fused_reshape_family_ms": 6.009,
+    "base_fused_detail": [
+      {
+        "name": "fused_reshape12_transpose1_transpose2_cast13_kernel",
+        "ms_inf": 2.7765,
+        "L_inf": 64.0
+      },
+      {
+        "name": "fused_reshape12_transpose1_kernel",
+        "ms_inf": 1.6376,
+        "L_inf": 64.0
+      },
+      {
+        "name": "fused_transpose3_reshape13_kernel",
+        "ms_inf": 0.5139,
+        "L_inf": 128.0
+      },
+      {
+        "name": "fused_reshape11_transpose_multiply11_cast12_kernel",
+        "ms_inf": 0.4768,
+        "L_inf": 128.0
+      },
+      {
+        "name": "fused_reshape11_transpose_transpose4_cast15_kernel",
+        "ms_inf": 0.3695,
+        "L_inf": 64.0
+      },
+      {
+        "name": "fused_reshape11_transpose_kernel",
+        "ms_inf": 0.2345,
+        "L_inf": 64.0
+      }
+    ],
+    "cand_pack_ms": 6.559,
+    "cand_pack_detail": [
+      {
+        "name": "mlc_vla_flashrt::dit_pack_k_kernel(const __half *, float *, int, int, int)",
+        "ms_inf": 2.8553,
+        "L_inf": 128.0
+      },
+      {
+        "name": "mlc_vla_flashrt::dit_pack_v_kernel(const __half *, __half *, int, int, int)",
+        "ms_inf": 2.6114,
+        "L_inf": 128.0
+      },
+      {
+        "name": "mlc_vla_flashrt::dit_pack_out_kernel(const __half *, __half *, int, int, int)",
+        "ms_inf": 0.5586,
+        "L_inf": 128.0
+      },
+      {
+        "name": "mlc_vla_flashrt::dit_pack_q_kernel(const __half *, float *, float, int, int, int)",
+        "ms_inf": 0.5334,
+        "L_inf": 128.0
+      }
+    ],
+    "pack_minus_fused_ms": 0.55
+  },
+  "gemm_kernel_set": "identical (0 only-base, 0 only-cand)",
+  "root_cause": [
+    "Tensor Core NOT dropped: nvjet/cutlass tensorop launch counts and ms flat; same gemm kernel set",
+    "layout fused family (~6.01 ms) replaced by dit_pack_* (~6.56 ms): pack is +0.55 ms slower",
+    "pack_k (2.86) + pack_v (2.61) dominate; half\u2192float BNHS K pack is the expensive SIMT path",
+    "layout launch count combined ~844\u2192852 (no launch reduction); 4 pack kernels vs fewer fat fused kernels but same total L on replaced path",
+    "attn/softmax unchanged (SIMT hd48); residual add unchanged",
+    "wall-clock earlier +1.9 ms denoise vs this nsys GPU -0.6 ms: GPU-side not the big regression; failure mode is pack not beating FuseOps, not TC loss"
+  ]
+}
