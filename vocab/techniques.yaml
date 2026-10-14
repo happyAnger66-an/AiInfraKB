@@ -4,3 +4,6 @@ int8-quant: {area: quantization}
 kernel-fusion: {area: kernel}
 cuda-graph: {area: runtime}
 kv-cache: {area: memory}
+nvfp4-quant: {area: quantization}
+layout-fusion: {area: kernel}
+flash-attn: {area: kernel}

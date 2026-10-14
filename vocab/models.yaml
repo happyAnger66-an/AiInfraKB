@@ -2,3 +2,4 @@
 pi05: {family: vla}
 llama: {family: llm}
 qwen: {family: llm}
+gr00t: {family: vla}
