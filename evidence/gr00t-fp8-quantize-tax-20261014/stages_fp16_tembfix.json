@@ -1,0 +1,69 @@
+{
+  "ts_utc": "2026-10-14T13:29:15.496749+00:00",
+  "tag": "fp16_tembfix",
+  "pack_bb": "/work/gr00t_n17_xdof_fp16_v2_vit_llm_flash_unirt",
+  "pack_dit": "/work/gr00t_fp8_phase_a/gr00t_n17_xdof_fp16_temb_fix_unirt",
+  "device": "cuda:0",
+  "warmup": 8,
+  "iters": 40,
+  "seed": 0,
+  "note": "hybrid: bb=FP16 vit_llm_flash; dit=temb_fix or phase_ada_ln; e2e wall incl H2D/D2H; LLM inputs random (no host scatter)",
+  "stages": {
+    "embed_vision": {
+      "n": 40,
+      "mean_ms": 19.03310457855696,
+      "median_ms": 18.953115009935573,
+      "p10_ms": 18.792763992678374,
+      "p90_ms": 19.44531296612695,
+      "freq_median_hz": 52.761775543269884
+    },
+    "backbone_llm": {
+      "n": 40,
+      "mean_ms": 29.516080780013,
+      "median_ms": 29.496408998966217,
+      "p10_ms": 29.021131980698556,
+      "p90_ms": 30.112302978523076,
+      "freq_median_hz": 33.90243198875659
+    },
+    "encode_condition": {
+      "n": 40,
+      "mean_ms": 6.6213892452651635,
+      "median_ms": 6.639404513407499,
+      "p10_ms": 6.485799967776984,
+      "p90_ms": 6.708002998493612,
+      "freq_median_hz": 150.61591713242012
+    },
+    "denoise_step": {
+      "n": 40,
+      "mean_ms": 20.09324784594355,
+      "median_ms": 20.06517248810269,
+      "p10_ms": 19.99122294364497,
+      "p90_ms": 20.21516702370718,
+      "freq_median_hz": 49.83759798690659
+    },
+    "denoise_loop": {
+      "n": 40,
+      "mean_ms": 77.00353194813943,
+      "median_ms": 76.99609603150748,
+      "p10_ms": 76.26372203230858,
+      "p90_ms": 77.90374499745667,
+      "freq_median_hz": 12.9876714735094
+    },
+    "e2e_head": {
+      "n": 40,
+      "mean_ms": 89.20550610637292,
+      "median_ms": 89.01642102864571,
+      "p10_ms": 88.6671930202283,
+      "p90_ms": 89.8106949753128,
+      "freq_median_hz": 11.233882338160928
+    },
+    "e2e_full": {
+      "n": 40,
+      "mean_ms": 138.1079369035433,
+      "median_ms": 137.73238699650392,
+      "p10_ms": 136.6896020481363,
+      "p90_ms": 139.7568309912458,
+      "freq_median_hz": 7.260456467841388
+    }
+  }
+}
