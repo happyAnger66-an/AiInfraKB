@@ -16,3 +16,19 @@
 - 先写测试，经人 review 后再实现。
 - 测试在 `tests/`，用 `python3 -m pytest tests/` 运行。
 - 卡片格式变化要同步改 `schema/card.schema.json`、`templates/` 和 `docs/architecture.md`。
+
+## 多机协作与治理
+
+### 写入路径
+- 各机上的 bot 可直接 push 到 `main` 的 `inbox/`。
+- **禁止**未经批准直接改 `cards/`、`archive/`、`vocab/`、`schema/`。
+- 晋升到 `cards/`：治理 bot（New Bot）审核并给出意见；**由人类批准后**再搬迁。
+
+### author 命名
+- Agent 写入必须用：`agent:<bot名>/<机器标识>`
+- 人类写入用：`human:<名字>`
+- 例：`agent:New-Bot/laptop-a`
+
+### 评审节奏
+- 治理 bot 定期扫 `inbox/`，按 lint、词表、证据、claim 数字给出通过/修改建议。
+- `needs-review`、过期 `review_by`、feedback 失败项一并报告给人。
