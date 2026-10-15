@@ -1,0 +1,199 @@
+{
+  "knife": "DitGemm-Shape",
+  "status": "measure-only",
+  "timestamp": "2026-10-15T12:56:41+08:00",
+  "method": {
+    "summary": "Static DiT Linear inventory (sa_seq=41, vl_seq=448, D=1536, ff=4D, crosskv once) + Cg4 nsys CUPTI per-launch duration clustered by cutlass grid (M,N) and duration-split for shared-grid K",
+    "nsys_source": "Cg4 pack B1 epic (pre-SoftAdd DiT GEMM-identical; SoftAdd only fuses res⊕LN)",
+    "nsys_path_thor": "/home/nvidia/pi05_forge_work/gr00t_fp8_phase_a/b1_denoise_hard_epic/nsys/cg4_denoise_loop.sqlite",
+    "kern_csv": "b1_cg4_denoise_loop_kern_sum.csv",
+    "parse_json": "b1_nsys_cg4_baseline_parse.json",
+    "tile_template": "256×128×64 e4m3×e4m3→half + LinCombPerColBias; cluster (2,1,1) 2SM",
+    "softadd_nsys_rerun": false,
+    "softadd_note": "SoftAdd pack e2e 87.506 / loop 42.610; GEMM shapes & launch count unchanged (still L=672). Timing from Cg4 nsys (fp8_gemm 25.43 ms/loop). SoftAdd same-session AdaStatic scout also L=672 @ 25.93 ms (noise)."
+  },
+  "baseline": {
+    "stack": "L1+L3+LlmRmsQ+EncFp8+D1+crosskv+D1take+AdaStatic+Cg4+LlmSiluEpi+DitSoftAdd",
+    "e2e_full_softadd": 87.506,
+    "denoise_loop_wall_softadd": 42.61,
+    "denoise_loop_wall_cg4_nsys_session": 43.953,
+    "denoise_gpu_ms_cg4": 45.788,
+    "fp8_gemm_ms_cg4": 25.4297,
+    "fp8_gemm_L": 672,
+    "iters_nsys": 12
+  },
+  "inventory_check": {
+    "formula": "640 in-step (self 96 + cross 64 per step ×4) + 32 crosskv precomp once = 672",
+    "self_blocks": 16,
+    "cross_blocks": 16,
+    "steps": 4,
+    "unique_shapes": 4,
+    "observed_L": 672.0,
+    "observed_ms": 25.429,
+    "match_672": true,
+    "match_25ms": true
+  },
+  "shapes": [
+    {
+      "M": 41,
+      "N": 1536,
+      "K": 1536,
+      "family": "to_q/to_k/to_v/to_out",
+      "family_detail": "self(16)×4(q/k/v/o)×4step + cross(16)×2(q/o)×4step = 256+128=384",
+      "count": 384,
+      "count_per_loop": 384,
+      "launches_per_loop": 384.0,
+      "us_med": 22.24,
+      "us_avg": 23.039,
+      "ms_per_loop": 8.847,
+      "pct_of_fp8_gemm": 34.79,
+      "pct_of_denoise_gpu": 19.32,
+      "tag": "小M税",
+      "tflops_med": 8.7,
+      "grid": {
+        "gridX": 2,
+        "gridY": 12,
+        "gridZ": 1,
+        "cluster": [
+          2,
+          1,
+          1
+        ]
+      },
+      "attribution_method": "grid(M,N)+duration-split vs K (cut=52.7us; hi→ff2)"
+    },
+    {
+      "M": 41,
+      "N": 1536,
+      "K": 6144,
+      "family": "ff.net_2",
+      "family_detail": "32 layers × 4 steps = 128",
+      "count": 128,
+      "count_per_loop": 128,
+      "launches_per_loop": 128.0,
+      "us_med": 62.624,
+      "us_avg": 64.144,
+      "ms_per_loop": 8.21,
+      "pct_of_fp8_gemm": 32.29,
+      "pct_of_denoise_gpu": 17.93,
+      "tag": "小M税",
+      "tflops_med": 12.36,
+      "grid": {
+        "gridX": 2,
+        "gridY": 12,
+        "gridZ": 1,
+        "cluster": [
+          2,
+          1,
+          1
+        ]
+      },
+      "attribution_method": "same grid as qkvo; duration mode ≥52.7us; count exact 128/loop"
+    },
+    {
+      "M": 41,
+      "N": 6144,
+      "K": 1536,
+      "family": "ff.net_0",
+      "family_detail": "32 layers × 4 steps = 128",
+      "count": 128,
+      "count_per_loop": 128,
+      "launches_per_loop": 128.0,
+      "us_med": 57.44,
+      "us_avg": 58.624,
+      "ms_per_loop": 7.504,
+      "pct_of_fp8_gemm": 29.51,
+      "pct_of_denoise_gpu": 16.39,
+      "tag": "小M税",
+      "tflops_med": 13.47,
+      "grid": {
+        "gridX": 2,
+        "gridY": 48,
+        "gridZ": 1,
+        "cluster": [
+          2,
+          1,
+          1
+        ]
+      },
+      "note_grid": "gridY=48 = ceil(N/128)=ceil(6144/128)",
+      "attribution_method": "gridY=48 uniquely maps N=6144"
+    },
+    {
+      "M": 448,
+      "N": 1536,
+      "K": 2048,
+      "family": "cross to_k/to_v",
+      "family_detail": "16 cross layers × 2 (k,v) once per denoise_loop (CROSS_KV_PRECOMP) = 32",
+      "count": 32,
+      "count_per_loop": 32,
+      "launches_per_loop": 32.0,
+      "us_med": 27.04,
+      "us_avg": 27.136,
+      "ms_per_loop": 0.868,
+      "pct_of_fp8_gemm": 3.41,
+      "pct_of_denoise_gpu": 1.9,
+      "tag": "大GEMM",
+      "tflops_med": 104.24,
+      "grid": {
+        "gridX": 4,
+        "gridY": 12,
+        "gridZ": 1,
+        "cluster": [
+          2,
+          1,
+          1
+        ]
+      },
+      "attribution_method": "gridX=4 = 2SM×ceil(448/256); unique by M"
+    }
+  ],
+  "summary": {
+    "small_M_tax_ms": 24.561,
+    "small_M_tax_pct_fp8": 96.6,
+    "large_GEMM_ms": 0.868,
+    "large_GEMM_pct_fp8": 3.4,
+    "top3_by_time": [
+      {
+        "MNK": [
+          41,
+          1536,
+          1536
+        ],
+        "family": "to_q/to_k/to_v/to_out",
+        "ms_per_loop": 8.847,
+        "pct_fp8": 34.79,
+        "tag": "小M税"
+      },
+      {
+        "MNK": [
+          41,
+          1536,
+          6144
+        ],
+        "family": "ff.net_2",
+        "ms_per_loop": 8.21,
+        "pct_fp8": 32.29,
+        "tag": "小M税"
+      },
+      {
+        "MNK": [
+          41,
+          6144,
+          1536
+        ],
+        "family": "ff.net_0",
+        "ms_per_loop": 7.504,
+        "pct_fp8": 29.51,
+        "tag": "小M税"
+      }
+    ],
+    "tune_priority": [
+      "P0: M=41 N=1536 K=1536 (qkvo) — 8.85 ms / 34.8%; classic 小M税; tile 256 wastes M; try 1SM small-M / smaller tileM",
+      "P0: M=41 N=1536 K=6144 (ff2) — 8.21 ms / 32.3%; same 小M + fat K",
+      "P0: M=41 N=6144 K=1536 (ff0) — 7.50 ms / 29.5%; same 小M + fat N (TVM_FP8_SMALL_M_TILE / GU-wide path relevant)",
+      "P3 defer: M=448 N=1536 K=2048 (crosskv) — only 0.87 ms / 3.4%; already ~104 TFLOPS; low ROI"
+    ],
+    "one_liner": "672 发里 96.6% 时间是 M=41 小M税（qkvo+ff0+ff2）；crosskv M=448 仅 3.4%。Tune 优先 小M tile/1SM，勿先啃 crosskv。"
+  }
+}
