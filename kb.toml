@@ -12,4 +12,5 @@ technique = 90
 
 [publish]
 site_title = "AiInfraKB · AI 推理优化知识库"
+# 公网把 out/html/ 挂在这个前缀下；卡片页是 cards/<id>/index.html。
 wiki_base_url = "/kb/aiinfra/"
