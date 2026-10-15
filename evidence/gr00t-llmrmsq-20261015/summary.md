@@ -1,25 +1,28 @@
-# GR00T LlmRmsQ — RMS→e4m3 共享进 QKV 证据摘要
+# GR00T LlmRmsQ — 证据摘要（scout + merge）
 
-来源：牛马 `gr00t-llmrmsq-scout.md`（2026-10-15）；架构师 **升 GO，批合**（scout 原 Soft-GO 默认不合）。
+来源：牛马 scout + `gr00t-llmrmsq-merge.md`（2026-10-15）；架构师升 GO 批合并锁基线。
 
-## Verdict
+## Scout
 
 | 项 | 值 |
 |---|---|
-| 决策 | **GO / 批合**（合入 sanity 待牛马） |
-| e2e_full | 99.940 → **97.916（−2.024）** |
-| backbone_llm | 20.166 → **18.528（−1.638）** |
-| overall | cos 0.999810 / mse 4.580e-4 **PASS**（贴门） |
-| nsys | `rms_fp8` HIT；QKV nvjet 768→0；FP8 GEMM 1024→1792 |
+| e2e_full | 99.940 → 97.916（**−2.024**） |
+| backbone_llm | −1.638 |
+| overall | cos 0.999810 / mse 4.580e-4 PASS（贴门） |
+| nsys | `rms_fp8` HIT；QKV nvjet 768→0 |
 
-估锁新基线 ~97.3（叠现锁 ~99.35）；`w−1` Soft-GO 可跟，不挡合入。
+## Merge sanity（锁新基线）
 
-## vs L2
+| 项 | 值 |
+|---|---|
+| Stack | L1+L3+**LlmRmsQ**+D1+crosskv+D1take+AdaStatic |
+| e2e_full | **98.432**（vs pre −1.750） |
+| llm | 18.924（−1.334） |
+| head / loop | 60.680 / 49.691 |
+| overall | cos 0.999939 / mse **1.465e-4** PASS（比 scout 松） |
+| bb 别名 | `gr00t_n17_bb_fp8_baseline_L1L3LlmRmsQ_unirt` |
+| Gap | 距 66.7 仍 ~**31.7 ms** |
 
-L2 = RMS FP16 + 独立 `quantize_fp8`（e2e −0.75，NO-GO）；本刀 = **`rms_fp8`→shared prequant**（非 L2）。
+`w−1` Soft-GO 可跟不挡；下一刀 EncFp8。
 
-## 下一刀
-
-架构师批 **EncFp8** scout（禁 L2/V1/AttnScore/DitAttnE4 核债重开）。
-
-全文见同目录 `gr00t-llmrmsq-scout.md`。
+全文：`gr00t-llmrmsq-scout.md` / `gr00t-llmrmsq-merge.md`。
