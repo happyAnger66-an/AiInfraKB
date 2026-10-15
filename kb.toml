@@ -12,4 +12,4 @@ technique = 90
 
 [publish]
 site_title = "AiInfraKB · AI 推理优化知识库"
-wiki_base_url = "/wiki/aiinfra-kb/"
+wiki_base_url = "/kb/aiinfra/"

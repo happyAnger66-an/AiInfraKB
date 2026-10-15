@@ -87,7 +87,7 @@ def test_html_index_json(kb_root, tmp_path):
     assert item["title"] == "示例：某算子在 FP8 下保持 FP16"
     assert item["summary"].startswith("示例：误差升高 4 倍")
     assert item["date"] == "2026-10-10"
-    assert item["url"] == "/wiki/aiinfra-kb/cards/kb-0001/"
+    assert item["url"] == "/kb/aiinfra/cards/kb-0001/"
     assert item["status"] == "active"
     assert item["type"] == "lesson"
     assert {"thor", "pi05", "fp8-quant", "lesson"} <= set(item["tags"])
