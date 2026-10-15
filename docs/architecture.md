@@ -22,7 +22,7 @@ flowchart LR
   LINT -->|有错误| STOP["退出码 1，不构建"]
   LINT -->|通过| BUILD["build"]
   BUILD --> WIKI["out/wiki/<br/>mkdocs.yml + docs/"]
-  BUILD --> HTML["out/html/<br/>index.html + index.json"]
+  BUILD --> HTML["out/html/<br/>index.html + index.json<br/>cards/&lt;id&gt;/index.html"]
   BUILD --> AIDX["out/INDEX.md<br/>只含 active，给 agent"]
 ```
 
@@ -86,7 +86,8 @@ classDiagram
 
 - `load_kb` 读取 `cards/` 和 `archive/` 下的所有 `.md`，把 YAML 解析出的日期统一转成 `YYYY-MM-DD` 字符串后再交给 schema 校验。
 - `build` 先调用 `lint`，有任何 `Issue` 就抛出 `LintError`。
-- `public_only=True` 时，`visibility` 不是 `public` 的卡片不出现在任何产物里。
+- `public_only=True` 时，`visibility` 不是 `public` 的卡片不出现在任何产物里，包括 `out/html/cards/`。
+- 部署时只需要 `out/html/`：把它挂在 `publish.wiki_base_url`（`/kb/aiinfra/`）下，`index.json` 的 `cards/<id>/` 就会打开 `cards/<id>/index.html`。不必在服务器上跑 MkDocs。
 
 ## agent 命令
 
@@ -134,6 +135,7 @@ classDiagram
 | `out/wiki/docs/index.md` | 总览：按类型、状态计数 |
 | `out/wiki/docs/cards/<id>.md` | 每张卡一页；顶部写状态、置信度、最后验证日期；非 `active` 状态加 `!!! warning` 横幅 |
 | `out/wiki/docs/by-hardware/<name>.md`、`by-model/`、`by-technique/` | 按维度列出卡片 |
-| `out/html/index.json` | 门户兼容格式：`title`、`description`、`items[]`，每项含 `id`、`title`、`summary`（claim）、`tags`、`date`（last_verified）、`url`（`publish.wiki_base_url` + `cards/<id>/`）、`status`、`type` |
+| `out/html/index.json` | 门户兼容格式：`title`、`description`、`items[]`，每项含 `id`、`title`、`summary`（claim）、`tags`、`date`（last_verified）、`url`（`publish.wiki_base_url` + `cards/<id>/`，当前为 `/kb/aiinfra/cards/<id>/`）、`status`、`type` |
 | `out/html/index.html` | 单页索引，读取 `index.json`，可按关键字和状态过滤 |
+| `out/html/cards/<id>/index.html` | 每张进入 `index.json` 的卡片一页。含标题、status / confidence / last_verified、正文（Markdown 转 HTML）；非 `active` 有复核提示。页首「返回索引」指向 `../../index.html`。与该项 `url` 对应：静态站点把 `html/` 挂在 `wiki_base_url` 上即可点开 |
 | `out/INDEX.md` | 给 agent 的精简目录，只列 `active` 卡片，按类型分组 |

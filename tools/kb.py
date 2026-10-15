@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import html
 import json
 import os
 import re
@@ -326,6 +327,129 @@ def _agent_index(cards: list[Card]) -> str:
     return "\n".join(lines)
 
 
+def _esc(text: str) -> str:
+    return html.escape(text, quote=False)
+
+
+def _inline_md(text: str) -> str:
+    parts = re.split(r"(`[^`\n]+`)", text)
+    rendered: list[str] = []
+    for part in parts:
+        if len(part) >= 2 and part.startswith("`") and part.endswith("`"):
+            rendered.append(f"<code>{_esc(part[1:-1])}</code>")
+            continue
+        escaped = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", _esc(part))
+        rendered.append(escaped)
+    return "".join(rendered)
+
+
+def _is_md_block(line: str) -> bool:
+    return bool(
+        line.startswith("```")
+        or line.startswith(">")
+        or re.match(r"#{1,6} ", line)
+        or re.match(r"[-*] ", line)
+        or re.match(r"\d+\. ", line)
+    )
+
+
+def _md_to_html(markdown: str) -> str:
+    lines = markdown.splitlines()
+    blocks: list[str] = []
+    index = 0
+    total = len(lines)
+    while index < total:
+        line = lines[index]
+        if not line.strip():
+            index += 1
+            continue
+        if line.startswith("```"):
+            index += 1
+            code: list[str] = []
+            while index < total and not lines[index].startswith("```"):
+                code.append(lines[index])
+                index += 1
+            if index < total:
+                index += 1
+            blocks.append(f"<pre><code>{_esc(chr(10).join(code))}</code></pre>")
+            continue
+        if line.startswith(">"):
+            quoted: list[str] = []
+            while index < total and lines[index].startswith(">"):
+                rest = lines[index][1:]
+                quoted.append(rest[1:] if rest.startswith(" ") else rest)
+                index += 1
+            blocks.append(f"<blockquote>{_md_to_html(chr(10).join(quoted))}</blockquote>")
+            continue
+        heading = re.match(r"(#{1,6}) (.*)", line)
+        if heading:
+            level = len(heading.group(1))
+            blocks.append(f"<h{level}>{_inline_md(heading.group(2).strip())}</h{level}>")
+            index += 1
+            continue
+        bullet = re.match(r"[-*] (.*)", line)
+        if bullet:
+            items: list[str] = []
+            while index < total and (matched := re.match(r"[-*] (.*)", lines[index])):
+                items.append(matched.group(1))
+                index += 1
+            lis = "".join(f"<li>{_inline_md(item)}</li>" for item in items)
+            blocks.append(f"<ul>{lis}</ul>")
+            continue
+        numbered = re.match(r"\d+\. (.*)", line)
+        if numbered:
+            items = []
+            while index < total and (matched := re.match(r"\d+\. (.*)", lines[index])):
+                items.append(matched.group(1))
+                index += 1
+            lis = "".join(f"<li>{_inline_md(item)}</li>" for item in items)
+            blocks.append(f"<ol>{lis}</ol>")
+            continue
+        paragraph: list[str] = []
+        while index < total and lines[index].strip() and not _is_md_block(lines[index]):
+            paragraph.append(lines[index].strip())
+            index += 1
+        blocks.append(f"<p>{_inline_md(' '.join(paragraph))}</p>")
+    return "\n".join(blocks)
+
+
+def _html_card(card: Card) -> str:
+    title = str(card.meta.get("title") or card.id or "")
+    status = str(card.status or "")
+    confidence = str(card.meta.get("confidence") or "")
+    verified = str(card.meta.get("last_verified") or "")
+    warning = ""
+    if status != "active":
+        warning = (
+            f'  <p class="warning">当前状态为 {_esc(status)}，引用前请复核。</p>\n'
+        )
+    body = _md_to_html(card.body.strip())
+    return f"""<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8">
+  <title>{_esc(title)}</title>
+  <style>
+    body {{ max-width: 42rem; margin: 1.5rem auto; padding: 0 1rem; line-height: 1.55; }}
+    .warning {{ padding: 0.5rem 0.75rem; background: #fff6d8; }}
+    pre {{ overflow: auto; padding: 0.75rem; background: #f4f4f4; }}
+    code {{ font-family: ui-monospace, monospace; }}
+  </style>
+</head>
+<body>
+  <p><a href="../../index.html">返回索引</a></p>
+  <h1>{_esc(title)}</h1>
+{warning}  <ul>
+    <li>status: {_esc(status)}</li>
+    <li>confidence: {_esc(confidence)}</li>
+    <li>last_verified: {_esc(verified)}</li>
+  </ul>
+  {body}
+</body>
+</html>
+"""
+
+
 def _html_page(site_title: str) -> str:
     return f"""<!DOCTYPE html>
 <html lang="zh">
@@ -394,7 +518,7 @@ def build(kb: KB, out, public_only: bool = False) -> list[Path]:
     cards = _selected(kb, public_only)
     publish = _publish(kb)
     site_title = publish.get("site_title") or "AiInfraKB"
-    wiki_base = publish.get("wiki_base_url") or "/wiki/aiinfra-kb/"
+    wiki_base = publish.get("wiki_base_url") or "/kb/aiinfra/"
     if not str(wiki_base).endswith("/"):
         wiki_base = f"{wiki_base}/"
 
@@ -416,6 +540,11 @@ def build(kb: KB, out, public_only: bool = False) -> list[Path]:
 
     for card in cards:
         _write(out / "wiki" / "docs" / "cards" / f"{card.id}.md", _card_page(card), written)
+        _write(
+            out / "html" / "cards" / str(card.id) / "index.html",
+            _html_card(card),
+            written,
+        )
 
     grouped: dict[tuple[str, str], list[Card]] = {}
     for card in cards:
