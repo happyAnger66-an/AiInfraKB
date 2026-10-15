@@ -146,11 +146,18 @@ def _add(issues: list[Issue], code: str, path: Path, message: str) -> None:
     issues.append(Issue(code, path, message))
 
 
+def _inbox_ids(root: Path) -> set[str]:
+    inbox = root / "inbox"
+    if not inbox.is_dir():
+        return set()
+    return {path.stem for path in inbox.rglob("*.md") if re.fullmatch(r"kb-\d{4}", path.stem)}
+
+
 def lint(kb: KB) -> list[Issue]:
     issues: list[Issue] = []
     validator = Draft202012Validator(kb.schema)
     id_counts = Counter(card.id for card in kb.cards if isinstance(card.id, str))
-    known_ids = set(id_counts)
+    known_ids = set(id_counts) | _inbox_ids(kb.root)
 
     for card in kb.cards:
         meta = card.meta

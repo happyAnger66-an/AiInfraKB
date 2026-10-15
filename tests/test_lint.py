@@ -161,6 +161,20 @@ def test_resolved_reference(kb_root):
     assert codes(kb_root.root) == []
 
 
+def test_inbox_id_resolves_reference(kb_root):
+    inbox = kb_root.root / "inbox"
+    inbox.mkdir()
+    (inbox / "kb-0002.md").write_text("placeholder\n", encoding="utf-8")
+    kb_root.add_card(
+        make_meta(
+            status="superseded",
+            related=["kb-0002"],
+            superseded_by="kb-0002",
+        )
+    )
+    assert codes(kb_root.root) == []
+
+
 def test_superseded_requires_target(kb_root):
     kb_root.add_card(make_meta(status="superseded"))
     assert "E_SUPERSEDED" in codes(kb_root.root)

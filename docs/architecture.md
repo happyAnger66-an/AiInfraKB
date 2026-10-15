@@ -121,7 +121,7 @@ classDiagram
 | `E_CLAIM_NUMBER` | `lesson`、`technique`、`benchmark` 的 `claim` 里没有数字 |
 | `E_ACTIVE_EVIDENCE` | `active` 卡片没有证据，或置信度是 `inferred` |
 | `E_DATES` | `created` 晚于 `last_verified`，或 `review_by` 早于 `last_verified` |
-| `E_REF` | `related`、`supersedes`、`superseded_by` 指向不存在的 id |
+| `E_REF` | `related`、`supersedes`、`superseded_by` 指向 `cards/`、`archive/`、`inbox/` 里都不存在的 id。`inbox/kb-NNNN.md` 只参与引用解析，不进入 `load_kb` 的卡片集合 |
 | `E_SUPERSEDED` | `superseded` 状态缺少 `superseded_by` |
 | `E_EVIDENCE_PATH` | 证据 `ref` 是仓库内路径但文件不存在（`http(s)://` 链接不检查） |
 | `E_SECTIONS` | 正文缺少 `## 结论`、`## 适用条件`、`## 证据` 任一节 |
