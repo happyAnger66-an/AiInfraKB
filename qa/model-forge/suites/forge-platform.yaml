@@ -10,6 +10,7 @@ cases:
     assert: |
       For FP8/NVFP4 templates, create-job UI forces 极致量化 (calib) checked
       and not cancellable when template requires_calib / fp8_gemm.
+      API creates must still include calib when requires_calib / SoftAdd+C1.
     gate: requires_calib implied for FP8 SoftAdd+C1
   - id: G11
     title: Quant pipeline defaults to compare
@@ -19,7 +20,17 @@ cases:
       Default compare.mode=glue (ckpt glue/PT reference); p3_dump not required.
   - id: P-login
     title: QA account login on test stack
-    assert: qa_e2e local login; never use production :8088 for GR00T test stack
+    assert: qa_e2e local login; never use production :8088 for GR00T test stack; password never committed
   - id: P-submitter
     title: Jobs submitted as qa_e2e
     assert: submitter visible as qa_e2e for attribution
+  - id: P-issue-loop
+    title: Fix then new-open (never refresh failed job)
+    assert: |
+      After Agent/compile/ops marks DONE, QA creates a NEW job (new alias/id).
+      Failed jobs stay as evidence; do not re-run/refresh them to greenwash.
+  - id: P-api-vs-ui
+    title: API coverage ≠ UI coverage
+    assert: |
+      Service/agent API PASS does not close web UI cases. UI smoke (entry→create→logs/artifacts)
+      is recorded separately after the test-stack web image includes the feature entry.
