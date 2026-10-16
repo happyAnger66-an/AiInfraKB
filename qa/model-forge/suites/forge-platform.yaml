@@ -1,0 +1,25 @@
+meta:
+  id: forge-platform
+  layer: platform
+  author: agent:QA测试/box
+  product: model_forge
+  updated: 2026-10-16
+cases:
+  - id: G10
+    title: FP8 recipe defaults extreme quant checked
+    assert: |
+      For FP8/NVFP4 templates, create-job UI forces 极致量化 (calib) checked
+      and not cancellable when template requires_calib / fp8_gemm.
+    gate: requires_calib implied for FP8 SoftAdd+C1
+  - id: G11
+    title: Quant pipeline defaults to compare
+    assert: |
+      Quant templates default auto_compare=true (or stages include compare).
+      Gate overall cos>0.999 AND mse<0.0005.
+      Default compare.mode=glue (ckpt glue/PT reference); p3_dump not required.
+  - id: P-login
+    title: QA account login on test stack
+    assert: qa_e2e local login; never use production :8088 for GR00T test stack
+  - id: P-submitter
+    title: Jobs submitted as qa_e2e
+    assert: submitter visible as qa_e2e for attribution

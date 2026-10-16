@@ -1,0 +1,50 @@
+meta:
+  id: family-gr00t
+  layer: family
+  extends: forge-platform
+  author: agent:QA测试/box
+  family: gr00t
+  updated: 2026-10-16
+  path_a: Thor first (gr00t-test-gpu0); 4090 phase-2
+env_hints:
+  web: http://<TEST_WEB_HOST>:18088/
+  service: http://<TEST_SERVICE_HOST>:18089/
+  agent: forge-agent-gr00t-test@thor-002 / gr00t-test-gpu0
+  template_id: gr00t_n17_softadd_c1
+  ckpt: /work/checkpoints/<GR00T_CKPT>
+  note: |
+    Concrete hosts and ckpt paths belong in private runs/ snapshots, not this public family suite.
+    Intermediate packs/scales/p3_dump are job outputs, not copy prerequisites.
+    GR00T calib is ckpt→features dump→scales (NOT LeRobot dataset path).
+    SoftAdd+C1 runtime via Agent LD_PRELOAD phase_a_so this week (not path presets).
+cases:
+  - id: G0
+    assert: qa_e2e login; gr00t-test-gpu0 online/schedulable
+  - id: G1
+    assert: templates contain gr00t_n17_softadd_c1; path-presets input-side only (ckpt + optional backbone)
+  - id: G2
+    assert: |
+      Create job with template gr00t_n17_softadd_c1, ckpt path, claim gr00t-test-gpu0.
+      Stages include calib+compile+unirt_pack (requires_calib true).
+      Prerequisite: Agent GR00T calib path wired (no fake datasets[]).
+  - id: G3
+    assert: job env LD_PRELOAD first is SoftAdd+C1 fp8_gemm_c1.so; FLASHRT_ARCH=110; no tip n3fc2 residual
+  - id: G4
+    assert: job produces model_dir + model_dir_dit (bb+dit packs) into mfs; SoftAdd+C1 attrs; do NOT accept pre-copied old packs
+  - id: G5
+    assert: bench timing recorded after packs exist; no hard latency gate this round
+  - id: G6
+    assert: |
+      auto_compare with compare.mode=glue; overall cos>0.999 and mse<0.0005
+      vs ckpt glue/PT reference; p3_dump optional cache only
+  - id: G7
+    assert: negative — missing ckpt / wrong template fails with readable error
+  - id: G8
+    assert: GR00T delivery entry visible on test web; service healthz gr00t_prefix=/v1/gr00t
+    status: PASS_2026-10-16
+  - id: G9
+    assert: submitter=qa_e2e; never touch production :8088
+  - id: G10
+    inherits: forge-platform.G10
+  - id: G11
+    inherits: forge-platform.G11
