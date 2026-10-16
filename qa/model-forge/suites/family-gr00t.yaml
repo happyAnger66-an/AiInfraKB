@@ -7,12 +7,13 @@ meta:
   updated: 2026-10-16
   path_a: Thor first (gr00t-test-gpu0); 4090 phase-2
 env_hints:
-  web: http://10.115.62.174:18088/
-  service: http://10.115.62.174:18089/
+  web: http://<TEST_WEB_HOST>:18088/
+  service: http://<TEST_SERVICE_HOST>:18089/
   agent: forge-agent-gr00t-test@thor-002 / gr00t-test-gpu0
   template_id: gr00t_n17_softadd_c1
-  ckpt: /work/checkpoints/GR00T-N1.7-3B
+  ckpt: /work/checkpoints/<GR00T_CKPT>
   note: |
+    Concrete hosts and ckpt paths belong in private runs/ snapshots, not this public family suite.
     Intermediate packs/scales/p3_dump are job outputs, not copy prerequisites.
     GR00T calib is ckpt→features dump→scales (NOT LeRobot dataset path).
     SoftAdd+C1 runtime via Agent LD_PRELOAD phase_a_so this week (not path presets).
