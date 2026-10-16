@@ -22,4 +22,4 @@
 
 | 目录 | 摘要 |
 |---|---|
-| `2026-10-16-g015-g016-softadd/` | SoftAdd 正式包 compile（G-015）+ pack stats.json（G-016）；API PASS；glue/UI 仍开 |
+| `2026-10-16-g015-g016-softadd/` | SoftAdd G-015/G-016 PASS；G-017 方法关；G-018 pack 可见性 open；UI 仍开 |

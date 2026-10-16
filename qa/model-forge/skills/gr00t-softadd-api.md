@@ -2,19 +2,19 @@
 
 作者：`agent:QA测试/box`  
 继承：`suites/forge-platform.yaml` ← `suites/family-gr00t.yaml`  
-配套轮次：`runs/2026-10-16-g015-g016-softadd/`
+配套轮次：`runs/2026-10-16-g015-g016-softadd/`（**具体主机/ckpt 只写在该轮次**）
 
-## 测栈约定
+## 测栈约定（占位）
 
 | 项 | 约定 |
 |---|---|
-| Web | `http://10.115.45.181:18088` |
-| Service（同源反代亦可） | `:18089` |
+| Web | `${FORGE_WEB}`（测栈 web，端口惯例 `:18088`；**不是**现网 `:8088`） |
+| Service | `${FORGE_SERVICE}`（端口惯例 `:18089`） |
 | 账号 | `qa_e2e`（**密码不入库**） |
 | 模板 | `gr00t_n17_softadd_c1` |
 | Agent | `forge-agent-gr00t-test` / claim `gr00t-test-gpu0` |
 | storage | `gpu4090`（`/data`） |
-| checkpoint | `/data/checkpoints/GR00T-N1.7-3B` |
+| checkpoint | path-preset / `${GR00T_CKPT}`（storage 相对；具体路径见 `runs/`） |
 | datasets | 空（故意） |
 
 ## 平台级看护（创建前自检）
@@ -28,7 +28,7 @@
 {
   "alias": "QA-G2-rN-<slug>",
   "template_id": "gr00t_n17_softadd_c1",
-  "checkpoint_dir": "/data/checkpoints/GR00T-N1.7-3B",
+  "checkpoint_dir": "${GR00T_CKPT}",
   "stages": ["calib", "compile", "unirt_pack"],
   "platform": "nvidia_thor",
   "storage_server": "gpu4090",
@@ -39,7 +39,7 @@
 }
 ```
 
-HTTP：
+HTTP（相对 `${FORGE_WEB}`）：
 
 1. `POST /auth/login`
 2. `POST /api/v1/gr00t/job/create`（上表 JSON）
@@ -59,7 +59,7 @@ HTTP：
 
 ```json
 {
-  "job_id": 20,
+  "job_id": "<parent_pack_job_id>",
   "alias": "QA-G2-glue-rN-from<parent>",
   "mode": "auto",
   "storage_server": "gpu4090",
@@ -73,6 +73,10 @@ HTTP：
 
 `POST /api/v1/gr00t/compare/create`。门槛同平台 G11。
 
+**G-017**（已关方法层，`e13199b`）：跑前确认测 agent 已挂带 `Gr00tStageMixin` 的 `runner.py`（`hasattr(JobRunner, "_run_gr00t_compare")`）。
+
+**G-018**：bb pack（`/data/packs/<parent-alias>`）须在 **claim 机（thor）可读**；不可见则 compare FAIL、无 cos/mse。修好后 **新开** compare，勿刷失败单。
+
 ## 热补 vs 正式包（G-015 两层）
 
 | 层 | 含义 | QA 怎么验 |
@@ -82,6 +86,6 @@ HTTP：
 
 ## UI 冒烟（另记，勿与 API 混关）
 
-前置：测栈 web 镜像含 GR00T 入口（≥ `b04b877`；换 `:18088` 时勿误伤 service/agent）。
+前置：测栈 web 镜像含 GR00T 入口（≥ `b04b877`；换 web 时勿误伤 service/agent）。
 
 断言：入口可见 → `qa_e2e` 建 SoftAdd 单 → 能看日志/产物。失败则开 UI ISSUE，**新开** UI 单。

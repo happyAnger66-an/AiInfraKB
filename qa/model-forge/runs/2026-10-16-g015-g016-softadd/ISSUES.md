@@ -1,10 +1,10 @@
-# ISSUES — SoftAdd G2（G-006…G-016 摘要）
+# ISSUES — SoftAdd G2（G-006…G-018 摘要）
 
 作者：`agent:QA测试/box`  
 口径：Agent 修一件 → QA **新开一单**（勿刷失败 job）。
 
-说明：下表「症状→归属→关单证据」以测栈 job `#7`…`#20` 与群内确认号为准。  
-**板号已对齐群聊的**：**G-013 / G-015 / G-016**。  
+说明：下表「症状→归属→关单证据」以测栈 job 与群内确认号为准。  
+**板号已对齐群聊的**：**G-013 / G-015 / G-016 / G-017 / G-018**。  
 G-006…G-012、G-014 按本轮 SoftAdd 阻塞出现顺序与关单旁证回填（便于复用）；若看板旧称不一致，以症状+证据 job 为准，不改写历史 job alias。
 
 | ID | 症状（摘要） | 归属 | 暴露 job | 关单证据 |
@@ -20,15 +20,22 @@ G-006…G-012、G-014 按本轮 SoftAdd 阻塞出现顺序与关单旁证回填�
 | G-014 | SoftAdd 任务须钉 C1 `LD_PRELOAD=…/phase_a_so/libsynapsex_fp8_gemm_c1.so`，踢掉 tip `n3fc2` | 算子开发 / agent env | 任务 env 冒烟 | 算子侧 `C1_SMOKE_OK`（本轮群内确认）；glue 前看护 |
 | **G-015** | dit compile `KeyError` 缺 65× `adaln_static_scale/shift_*` + `proj_out_1_static`；根因 loader 未 fold AdaStatic bank | 模型编译（mlc-vla）+ agent 热补过渡 | `#17`（热补前） | **正式包** pin `mlc-vla-2.0.1-…-ddea2af79`；撤热补；`#19` compile PASS |
 | **G-016** | unirt_pack：交付缺 `stats.json`（ckpt 仅有 Isaac `statistics.json`，非 openpi normalizer） | model_forge_agent (`22863b1`) | `#18` `#19` pack FAIL | **`#20` PASS**：日志「交付补齐 stats.json ← statistics.json」；pack `/data/packs/QA-G2-r12-g016-stats` |
+| **G-017** | glue compare：`JobRunner` 无 `_run_gr00t_compare`；make_golden skipped（p3 dump/glue gate）；无 cos/mse。根因：测容器未挂 `runner.py` / 缺 `Gr00tStageMixin` | model_forge_agent | `#22` `compare-QA-G2-glue-r1-from20` | pin `runner.py` + recreate `forge-agent-gr00t-test`；commit `e13199b`；smoke `hasattr(_run_gr00t_compare)=True` → **方法层关账**（勿刷 `#22`） |
+| **G-018** | glue compare：`#24` 终态 FAIL — claim 侧（thor）看不到 bb pack `/data/packs/QA-G2-r12-g016-stats`；无 cos/mse。G-017 方法已挂上，本单是 **pack 可见性/挂载** | model_forge_agent | `#24` `compare-QA-G2-glue-r2-g017` | open — 修好后 **新开** compare，**勿刷 `#24`** |
 
 ## 仍开 / 缺口
 
 | ID | 症状 | 归属 | 证据 | 状态 |
 |---|---|---|---|---|
-| （glue） | `JobRunner` 无 `_run_gr00t_compare` | model_forge_agent | `#22` | open — 修好后 **新开** compare，勿刷 `#22` |
-| （UI） | 测栈 web 旧镜像无 GR00T 入口；API≠UI | model_forge_web | 镜像 `9b764d5` | open — 升 `:18088` 后 QA 补 UI 冒烟 |
+| **G-018** | thor 不可见 `#20` pack 路径 → glue 无精度结果 | model_forge_agent | `#24` | open — 新开回归，勿刷 |
+| （UI） | 测栈 web 旧镜像无 GR00T 入口；API≠UI | model_forge_web | 镜像 `9b764d5` | open — 升测栈 web 后 QA 补 UI 冒烟 |
 
 ## G-015 两层（勿混关）
 
 1. **热补层**：测容器 `fold_static_adaln_bank` / patches 卷 → 仅证明可编。  
 2. **正式包层**：service pin `2.0.1@ddea2af` + 撤热补 → `#19` compile 才算 G-015 结案。
+
+## G-017 vs G-018（勿混关）
+
+1. **G-017**：compare **代码路径**（`runner.py` / `Gr00tStageMixin` / `_run_gr00t_compare`）→ `e13199b` 已关方法层。  
+2. **G-018**：compare **输入产物**在 thor 上可见（bb pack 路径/挂载/同步）→ `#24` 暴露；另开修复与回归。
