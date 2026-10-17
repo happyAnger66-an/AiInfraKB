@@ -15,6 +15,7 @@ Model Forge 验收分三层。上层是可继承的规则，下层只写本家�
 - 量化流水线默认做 compare（`auto_compare=true`，或 stages 含 compare）。门槛为 overall cos>0.999 且 mse<0.0005。默认 `compare.mode=glue`（ckpt glue / PT 参考），不要求 `p3_dump`
 - ISSUE 闭环：修好 → QA **新开一单**（勿刷失败 job）
 - API 绿 ≠ UI 绿
+- UI 精度呈现门禁：数字门 PASS 仍须核对列表 Tag 与 compare 详情；产物键须别名对齐平台键（`cos`↔`cosine`）。见 `skills/ui-accuracy-presentation-gate.md`
 
 ## 2. 家族 overlay `suites/family-*.yaml`
 
