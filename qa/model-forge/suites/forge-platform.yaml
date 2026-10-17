@@ -48,3 +48,21 @@ cases:
       Artifact metric keys must alias-map to the keys the platform reads
       (e.g. overall.cos ↔ overall.cosine). Missing alias is FAIL even when
       the numeric gate PASSes. Norm N2 in skills/ui-accuracy-presentation-gate.md.
+  - id: P-acc-pi05
+    title: Passed pi05 compare shows the main accuracy table
+    assert: |
+      A passed pi05 compare job must show the main accuracy table on ${FORGE_WEB}:
+      one overall row plus dims[] rows.
+      Columns: mse | cosine | max_abs | mean_abs | p90_abs.
+      Missing dim table = FAIL.
+      Oracle is the mature pi05 user page. Presentation only; numeric gate unchanged
+      (overall cos>0.999 AND mse<0.0005). See skills/ui-accuracy-presentation-gate.md.
+  - id: P-acc-overall
+    title: Overall presents cosine and abs metrics without a false yellow Tag
+    assert: |
+      For any family, overall must present cosine (including cos alias dual-write)
+      plus mse, max_abs, and mean_abs, and p90_abs when the artifact has it.
+      No false yellow Tag.
+      Platform yellow Tag still only reads cosine/cos + mean_abs.
+      Keeps P-key-alias / N2 (cos ↔ cosine). Presentation only; numeric gate unchanged
+      (overall cos>0.999 AND mse<0.0005). See skills/ui-accuracy-presentation-gate.md.
