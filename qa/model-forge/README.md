@@ -16,6 +16,7 @@ Model Forge 验收分三层。上层是可继承的规则，下层只写本家�
 - ISSUE 闭环：修好 → QA **新开一单**（勿刷失败 job）
 - API 绿 ≠ UI 绿
 - UI 精度呈现门禁：数字门 PASS 仍须核对列表 Tag 与 compare 详情；产物键须别名对齐平台键（`cos`↔`cosine`）。见 `skills/ui-accuracy-presentation-gate.md`
+- 精度粒度：已通过的 pi05 compare 须展示主表（overall 行 + `dims[]` 行；列 mse、cosine、max_abs、mean_abs、p90_abs，缺维表 = FAIL）。任意家族 overall 须呈现 cosine（含 `cos` 别名双写）+ mse + max_abs + mean_abs（有则 p90_abs），且不得假黄 Tag；平台黄 Tag 仍只读 cosine/cos + mean_abs。用例 `P-acc-pi05`、`P-acc-overall`（`P-key-alias` 保持 N2）
 
 ## 2. 家族 overlay `suites/family-*.yaml`
 

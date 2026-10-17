@@ -4,7 +4,7 @@ meta:
   extends: forge-platform
   author: agent:QA测试/box
   family: gr00t
-  updated: 2026-10-16
+  updated: 2026-10-17
   path_a: Thor first (gr00t-test-gpu0); 4090 phase-2
 env_hints:
   web: "${FORGE_WEB}/"          # e.g. http://<TEST_WEB_HOST>:18088/ — concrete host only in runs/
@@ -96,3 +96,22 @@ cases:
       After Agent fix, QA new-opens compare (do NOT refresh the failed job).
     status: OPEN
     note: "exposed #24 compare-QA-G2-glue-r2-g017; pack QA-G2-r12-g016-stats not visible on thor"
+  - id: P-ui-accuracy
+    inherits: forge-platform.P-ui-accuracy
+  - id: P-key-alias
+    inherits: forge-platform.P-key-alias
+  - id: P-acc-overall
+    inherits: forge-platform.P-acc-overall
+  - id: G-acc-dims
+    title: SoftAdd glue writes pi05-shaped dims[] (presentation)
+    layer: presentation
+    assert: |
+      SoftAdd glue artifact must write pi05-shaped dims[]: per-dim
+      cosine / mse / max_abs / mean_abs, and p90_abs when present.
+      UI on ${FORGE_WEB} must render the per-dim table (same columns as P-acc-pi05).
+      Missing dim table = FAIL.
+      Numeric hard gate remains overall cos>0.999 AND mse<0.0005 (G6 / G11) only.
+      Per-dim is report-only / presentation — do NOT raise per-dim to a hard gate.
+    note: |
+      Shape oracle is forge-platform.P-acc-pi05 (mature pi05 compare page), not a second numeric gate.
+      Overall fields: inherits P-acc-overall. Key alias stays P-key-alias / N2 (cos ↔ cosine).
