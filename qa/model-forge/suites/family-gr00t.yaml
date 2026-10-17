@@ -7,16 +7,19 @@ meta:
   updated: 2026-10-16
   path_a: Thor first (gr00t-test-gpu0); 4090 phase-2
 env_hints:
-  web: http://<TEST_WEB_HOST>:18088/
-  service: http://<TEST_SERVICE_HOST>:18089/
+  web: "${FORGE_WEB}/"          # e.g. http://<TEST_WEB_HOST>:18088/ — concrete host only in runs/
+  service: "${FORGE_SERVICE}/"  # e.g. http://<TEST_SERVICE_HOST>:18089/
   agent: forge-agent-gr00t-test@thor-002 / gr00t-test-gpu0
   template_id: gr00t_n17_softadd_c1
-  ckpt: /work/checkpoints/<GR00T_CKPT>
+  ckpt: /work/checkpoints/<GR00T_CKPT>   # path-preset / storage-relative; concrete path only in runs/
+  storage: gpu4090
+  account: qa_e2e
   note: |
     Concrete hosts and ckpt paths belong in private runs/ snapshots, not this public family suite.
     Intermediate packs/scales/p3_dump are job outputs, not copy prerequisites.
-    GR00T calib is ckpt→features dump→scales (NOT LeRobot dataset path).
+    GR00T calib is ckpt→features dump→scales (NOT LeRobot dataset path); datasets intentionally empty.
     SoftAdd+C1 runtime via Agent LD_PRELOAD phase_a_so this week (not path presets).
+    API create does not require GR00T web menu; UI smoke is a separate case (G8b).
 cases:
   - id: G0
     assert: qa_e2e login; gr00t-test-gpu0 online/schedulable
@@ -24,9 +27,12 @@ cases:
     assert: templates contain gr00t_n17_softadd_c1; path-presets input-side only (ckpt + optional backbone)
   - id: G2
     assert: |
-      Create job with template gr00t_n17_softadd_c1, ckpt path, claim gr00t-test-gpu0.
-      Stages include calib+compile+unirt_pack (requires_calib true).
-      Prerequisite: Agent GR00T calib path wired (no fake datasets[]).
+      API SoftAdd full flow (not UI):
+      POST /auth/login as qa_e2e; POST /api/v1/gr00t/job/create with
+      template_id=gr00t_n17_softadd_c1, checkpoint_dir=<GR00T_CKPT via path-preset/storage>,
+      stages=[calib,compile,unirt_pack], storage_server=gpu4090, datasets empty,
+      claim gr00t-test-gpu0. See skills/gr00t-softadd-api.md. Concrete URLs/paths in runs/.
+    evidence_pass: "job #20 QA-G2-r12-g016-stats succeeded 2026-10-16"
   - id: G3
     assert: job env LD_PRELOAD first is SoftAdd+C1 fp8_gemm_c1.so; FLASHRT_ARCH=110; no tip n3fc2 residual
   - id: G4
@@ -35,16 +41,58 @@ cases:
     assert: bench timing recorded after packs exist; no hard latency gate this round
   - id: G6
     assert: |
-      auto_compare with compare.mode=glue; overall cos>0.999 and mse<0.0005
-      vs ckpt glue/PT reference; p3_dump optional cache only
+      glue compare after pack: POST /api/v1/gr00t/compare/create with job_id=parent,
+      mode=auto, storage_server=gpu4090, golden under /data/goldens/<alias>,
+      apexinfer_model_dir=/data/packs/<alias>. Gate overall cos>0.999 and mse<0.0005;
+      compare.mode=glue; p3_dump optional cache only.
+      Preconditions: JobRunner has _run_gr00t_compare (G17); bb pack path visible on claim host (G18).
+    status: BLOCKED_2026-10-16
+    note: |
+      G-017 closed (e13199b). #24 FAIL → ISSUE-G-018 pack not visible on thor; do NOT refresh #24.
   - id: G7
     assert: negative — missing ckpt / wrong template fails with readable error
   - id: G8
-    assert: GR00T delivery entry visible on test web; service healthz gr00t_prefix=/v1/gr00t
+    assert: service healthz gr00t_prefix=/v1/gr00t; API routes under /api/v1/gr00t/* work
     status: PASS_2026-10-16
+  - id: G8b
+    title: UI smoke (separate from API)
+    assert: |
+      Test-stack web image includes GR00T delivery entry; qa_e2e can create SoftAdd job
+      from UI and open logs/artifacts. Do NOT close G2 API on UI alone; do NOT use :8088.
+    status: OPEN
+    note: "blocked while web still on pre-GR00T image (e.g. 9b764d5)"
   - id: G9
     assert: submitter=qa_e2e; never touch production :8088
   - id: G10
     inherits: forge-platform.G10
   - id: G11
     inherits: forge-platform.G11
+  - id: G15
+    title: Formal mlc-vla 2.0.1 AdaStatic fold (no hot patch)
+    assert: |
+      SoftAdd dit compile PASS on stack pin mlc-vla-2.0.1-feat_gr00t-adastatic-fold-g015-ddea2af79;
+      fold_static_adaln_bank hot patch / patches volume removed. Two-layer: hot patch ≠ formal close.
+    evidence_pass: "job #19 compile succeeded with formal pin"
+  - id: G16
+    title: Pack stats.json from checkpoint statistics.json
+    assert: |
+      unirt_pack writes delivery stats.json by copying/deriving from checkpoint statistics.json
+      (Isaac-GR00T). Log contains 交付补齐 stats.json ← checkpoint statistics.json.
+      Pack published under gpu4090:/data/packs/<alias>.
+    evidence_pass: "job #20 QA-G2-r12-g016-stats; pack by_key 2f6af67759ae"
+  - id: G17
+    title: Glue compare needs Gr00tStageMixin / _run_gr00t_compare
+    assert: |
+      After pack, compare create must run JobRunner._run_gr00t_compare (Gr00tStageMixin).
+      Test agent image must mount/pin runner.py with the mixin; recreate forge-agent-gr00t-test after pin.
+      Regress with a NEW compare job (never refresh a failed compare).
+    status: PASS_METHOD_2026-10-16
+    evidence_pass: "e13199b; smoke hasattr(_run_gr00t_compare)=True; exposed by #22"
+  - id: G18
+    title: Glue compare bb pack visible on claim host (thor)
+    assert: |
+      apexinfer_model_dir /data/packs/<parent-alias> (bb pack from parent unirt_pack) must be
+      readable on the claimed thor agent. Missing path → compare FAIL with no cos/mse.
+      After Agent fix, QA new-opens compare (do NOT refresh the failed job).
+    status: OPEN
+    note: "exposed #24 compare-QA-G2-glue-r2-g017; pack QA-G2-r12-g016-stats not visible on thor"
