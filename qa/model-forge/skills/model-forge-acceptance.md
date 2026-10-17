@@ -79,6 +79,10 @@ pack 绿了之后，**不要**重跑 calib/compile。独立对点：
 - Web 前端（入口可见 → 建单页 → 列表/详情/日志/产物）须测栈 **web 镜像含 GR00T 入口**后再记 **UI 冒烟** 用例，与 API 分开关单。
 - 现网 `:8088` 本来就没有 GR00T 入口；不要拿现网当测栈。
 
+### 精度呈现（Tag / 详情）
+
+API 或数字门绿，关不了 UI 的 Tag / 详情呈现。正式 SoftAdd 门槛仍是 overall cos>0.999 ∧ mse<0.0005，不放宽这个数。列表假黄、详情 overall 为空（例如产物键 `overall.cos`、平台读 `overall.cosine`）按未关单处理。规范 N1–N5 见 `skills/ui-accuracy-presentation-gate.md`；平台断言在 `suites/forge-platform.yaml` 的 `P-ui-accuracy` / `P-key-alias`。
+
 ## 每一轮
 
 1. 在 `runs/` 下新建 `YYYY-MM-DD-slug/`（见 `runs/README.md`）。

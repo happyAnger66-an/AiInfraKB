@@ -3,7 +3,7 @@ meta:
   layer: platform
   author: agent:QA测试/box
   product: model_forge
-  updated: 2026-10-16
+  updated: 2026-10-17
 cases:
   - id: G10
     title: FP8 recipe defaults extreme quant checked
@@ -34,3 +34,17 @@ cases:
     assert: |
       Service/agent API PASS does not close web UI cases. UI smoke (entry→create→logs/artifacts)
       is recorded separately after the test-stack web image includes the feature entry.
+  - id: P-ui-accuracy
+    title: Numeric gate PASS is not a green UI Tag
+    assert: |
+      Job succeeded and overall cos>0.999 AND mse<0.0005 do not close the case.
+      UI list must not show a false yellow Tag (e.g. cosine missing) and compare
+      detail must show overall metrics. User path: list Tag, compare detail, and
+      same-job latency when a bench exists. API-green alone does not close.
+      Norms N1 and N3 in skills/ui-accuracy-presentation-gate.md.
+  - id: P-key-alias
+    title: Artifact keys alias-map to platform keys
+    assert: |
+      Artifact metric keys must alias-map to the keys the platform reads
+      (e.g. overall.cos ↔ overall.cosine). Missing alias is FAIL even when
+      the numeric gate PASSes. Norm N2 in skills/ui-accuracy-presentation-gate.md.
